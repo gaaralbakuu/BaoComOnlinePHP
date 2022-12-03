@@ -37,27 +37,32 @@ function gotoAndWaitElementPresent($url, $cssSelector)
     waitElementPresent($cssSelector);
 }
 
-function gotoGroup($groupName)
+function gotoChat($chatName)
 {
     global $driver;
-    $elementContactSearchInput = $driver->findElements(WebDriverBy::cssSelector('#contact-search-input'));
+    try {
+        $elementContactSearchInput = $driver->findElements(WebDriverBy::cssSelector('#contact-search-input'));
 
-    if (count($elementContactSearchInput)) {
-        $elementContactSearchInput[0]->sendKeys($groupName);
-    }
-
-    // (new WebDriverActions($driver))->doubleClick($elementContactSearchInput[0])->perform();
-
-    waitElementPresent('.ReactVirtualized__Grid__innerScrollContainer>div div-16 span.truncate');
-
-    $elementGroups = $driver->findElements(WebDriverBy::cssSelector('.ReactVirtualized__Grid__innerScrollContainer>div div-16 span.truncate'));
-
-    for ($i = 0; $i < count($elementGroups); $i++) {
-        if ($elementGroups[$i]->getText() == $groupName) {
-            $elementGroups[$i]->click();
-            $driver->findElements(WebDriverBy::cssSelector("[data-id=\"div_Main_TabMsg\"]"))[0]->click();
-            break;
+        if (count($elementContactSearchInput)) {
+            $elementContactSearchInput[0]->clear();
+            $elementContactSearchInput[0]->sendKeys($chatName);
         }
+
+        // (new WebDriverActions($driver))->doubleClick($elementContactSearchInput[0])->perform();
+
+        waitElementPresent('.ReactVirtualized__Grid__innerScrollContainer>div div-16 span.truncate');
+
+        $elementChats = $driver->findElements(WebDriverBy::cssSelector('.ReactVirtualized__Grid__innerScrollContainer>div div-16 span.truncate'));
+
+        for ($i = 0; $i < count($elementChats); $i++) {
+            if ($elementChats[$i]->getText() == $chatName) {
+                $elementChats[$i]->click();
+                $driver->findElements(WebDriverBy::cssSelector("[data-id=\"div_Main_TabMsg\"]"))[0]->click();
+                break;
+            }
+        }
+    } catch (Exception $e) {
+        gotoChat($chatName);
     }
 }
 
@@ -71,7 +76,7 @@ function waitElementPresent($cssSelector, $timeout = 15)
             $elements = $driver->findElements(WebDriverBy::cssSelector($cssSelector));
             return count($elements) > 0;
         },
-        'Error locating more than five elements'
+        'Error locating more than one elements'
     );
 }
 
@@ -80,39 +85,45 @@ function waitElementPresent($cssSelector, $timeout = 15)
 function createPoll($title, array $question)
 {
     global $driver, $lastPollName;
-    waitElementPresent('[data-id="div_More_Menu"]');
-    $driver->findElements(WebDriverBy::cssSelector('[data-id="div_More_Menu"]'))[0]->click();
-    waitElementPresent('[data-id="div_MoreMenu_Poll"]');
-    $driver->findElements(WebDriverBy::cssSelector('[data-id="div_MoreMenu_Poll"]'))[0]->click();
-    waitElementPresent('.zl-modal');
-    $driver->findElements(WebDriverBy::cssSelector('[data-id="div_CreatePoll_AddOpt"]'))[0]->click();
-    $inputTopic = $driver->findElements(WebDriverBy::cssSelector('[data-id="txt_CreatePoll_Question"]'))[0];
-    $inputTopic->click();
-    $inputTopic->sendKeys($title);
-    $lastPollName = $title;
+    try {
+        gotoChat("Hải châu");
+        waitElementPresent('[data-id="div_More_Menu"]');
+        $driver->findElements(WebDriverBy::cssSelector('[data-id="div_More_Menu"]'))[0]->click();
+        waitElementPresent('[data-id="div_MoreMenu_Poll"]');
+        $driver->findElements(WebDriverBy::cssSelector('[data-id="div_MoreMenu_Poll"]'))[0]->click();
+        waitElementPresent('.zl-modal');
+        $driver->findElements(WebDriverBy::cssSelector('[data-id="div_CreatePoll_AddOpt"]'))[0]->click();
+        $inputTopic = $driver->findElements(WebDriverBy::cssSelector('[data-id="txt_CreatePoll_Question"]'))[0];
+        $inputTopic->click();
+        $inputTopic->sendKeys($title);
+        $lastPollName = $title;
 
-    $countQuest = count($question);
+        $countQuest = count($question);
 
-    if ($countQuest > 2) {
-        for ($i = 1; $i < $countQuest - 2; $i++) {
-            $driver->findElements(WebDriverBy::cssSelector('[data-id="div_CreatePoll_AddOpt"]'))[0]->click();
+        if ($countQuest > 2) {
+            for ($i = 1; $i < $countQuest - 2; $i++) {
+                $driver->findElements(WebDriverBy::cssSelector('[data-id="div_CreatePoll_AddOpt"]'))[0]->click();
+            }
         }
+
+        $listQuestionInput = $driver->findElements(WebDriverBy::cssSelector(".group-poll-create-content-item"));
+
+        for ($i = 0; $i < count($listQuestionInput); $i++) {
+            $input = $listQuestionInput[$i]->findElements(WebDriverBy::cssSelector("input"))[0];
+            $input->click();
+            $input->sendKeys($question[$i]);
+        }
+
+        $driver->findElements(WebDriverBy::cssSelector("[data-id='btn_CreatePoll_Create']"))[0]->click();
+    } catch (Exception $e) {
+        createPoll($title, $question);
     }
-
-    $listQuestionInput = $driver->findElements(WebDriverBy::cssSelector(".group-poll-create-content-item"));
-
-    for ($i = 0; $i < count($listQuestionInput); $i++) {
-        $input = $listQuestionInput[$i]->findElements(WebDriverBy::cssSelector("input"))[0];
-        $input->click();
-        $input->sendKeys($question[$i]);
-    }
-
-    $driver->findElements(WebDriverBy::cssSelector("[data-id='btn_CreatePoll_Create']"))[0]->click();
 }
 
 function sendMessage($message)
 {
     global $driver;
+    gotoChat("Hải âu");
     $builderMessage = "";
     $textSplit = explode("\n", $message);
     for ($i = 0; $i < count($textSplit); $i++) {
@@ -126,54 +137,107 @@ function sendMessage($message)
 
 function getPoll()
 {
-    global $driver, $lastPollName, $question;
-    $rightBar = $driver->findElements(WebDriverBy::cssSelector('.fa-outline-right-bar'));
-    if (count($rightBar)) {
-        $rightBar[0]->click();
-    }
-
-    $driver->findElements(WebDriverBy::cssSelector("#add-setting-box>div"))[1]->click();
-
-    $listPoll = $driver->findElements(WebDriverBy::cssSelector('#sideBodyScrollBox .ReactVirtualized__Grid__innerScrollContainer>div'));
-    for ($i = 0; $i < count($listPoll); $i++) {
-        $pollName = $listPoll[$i]->findElements(WebDriverBy::cssSelector('.truncate-2'))[0]->getText();
-        if ($lastPollName == "" || $lastPollName == $pollName) {
-            $listPoll[$i]->click();
-            break;
+    global $driver, $lastPollName, $question, $answer;
+    try {
+        gotoChat("Hải châu");
+        $rightBar = $driver->findElements(WebDriverBy::cssSelector('.fa-outline-right-bar'));
+        if (count($rightBar)) {
+            $rightBar[0]->click();
+        } else {
+            $driver->findElements(WebDriverBy::cssSelector('.fa-outline-right-bar-active'))[0]->click();
+            $driver->findElements(WebDriverBy::cssSelector('.fa-outline-right-bar'))[0]->click();
         }
+
+        $driver->findElements(WebDriverBy::cssSelector("#add-setting-box>div"))[1]->click();
+
+        $listPoll = $driver->findElements(WebDriverBy::cssSelector('#sideBodyScrollBox .ReactVirtualized__Grid__innerScrollContainer>div'));
+        for ($i = 0; $i < count($listPoll); $i++) {
+            $pollName = $listPoll[$i]->findElements(WebDriverBy::cssSelector('.truncate-2'));
+            if(count($pollName)){
+                $pollName = $pollName[0]->getText();
+            }else{
+                getPoll();
+                return;
+            }
+            if ($lastPollName == "" || $lastPollName == $pollName) {
+                $listPoll[$i]->click();
+                break;
+            }
+        }
+
+        waitElementPresent(".zl-modal__dialog");
+
+        $groupPollVoteDescription = $driver->findElements(WebDriverBy::cssSelector(".group-poll-vote-description"));
+        if (count($groupPollVoteDescription)) {
+            $groupPollVoteDescription[0]->click();
+            waitElementPresent(".group-poll-detail-section");
+
+            $listAnserPoll = $driver->findElements(WebDriverBy::cssSelector(".group-poll-detail-section"));
+
+            for ($i = 0; $i < count($listAnserPoll); $i++) {
+                $text = $listAnserPoll[$i]->findElements(WebDriverBy::cssSelector(".group-poll-detail-section-title"))[0]->getText();
+                $count = explode(")", explode("(", $text)[1])[0];
+                $title = explode(" (", $text)[0];
+                echo $title . ": " . $count . "\n";
+                if (($index = array_search($title, $question)) !== false) {
+                    echo $index. "\n";
+                    $answer[$index] = $count;
+                }
+                var_dump($answer);
+            }
+        }
+
+        $driver->findElements(WebDriverBy::cssSelector('[icon="icon-outline-setting"]'))[0]->click();
+
+        waitElementPresent(".popover-v3");
+        $divDetailPollMoreBlock = $driver->findElements(WebDriverBy::cssSelector('.popover-v3 [data-id="div_DetailPollMore_Block"]'));
+        if (count($divDetailPollMoreBlock)) {
+            $divDetailPollMoreBlock[0]->click();
+
+            waitElementPresent('.zl-modal__footer__button.z--btn--fill--secondary-red');
+            $driver->findElements(WebDriverBy::cssSelector('.zl-modal__footer__button.z--btn--fill--secondary-red'))[0]->click();
+        } else {
+            $driver->findElements(WebDriverBy::cssSelector('[icon="close f16"]'))[0]->click();
+        }
+
+        $driver->findElements(WebDriverBy::cssSelector('.fa-outline-right-bar-active'))[0]->click();
+    } catch (Exception $e) {
+        getPoll();
+    }
+}
+
+// random số lượng chưa bình chọn cho đủ chỉ tiêu, thứ 4 và 6 all in phiếu dư vào mặn 2, thứ 7 vào chay
+function generateTicket($maximum = 0)
+{
+    global $answer, $question;
+    $dayOfWeek = date("w", time());
+
+    $sum = 0;
+    if (count($answer) > 0) {
+        $sum = array_reduce($answer, function ($a, $b) {
+            return $a + (int)$b;
+        });
     }
 
-    waitElementPresent(".zl-modal__dialog");
+    $redundant = $maximum - $sum;
 
-    $groupPollVoteDescription = $driver->findElements(WebDriverBy::cssSelector(".group-poll-vote-description"));
-    if (count($groupPollVoteDescription)) {
-        $groupPollVoteDescription[0]->click();
-        waitElementPresent(".group-poll-detail-section");
+    if ($redundant > 0) {
+        if (in_array($dayOfWeek, [3, 5, 6])) {
+            for ($i = 0; $i < count($question); $i++) {
+                if (!isset($answer[$i % count($question)]))
+                    $answer[$i % count($question)] = 0;
+            }
 
-        $listAnserPoll = $driver->findElements(WebDriverBy::cssSelector(".group-poll-detail-section"));
-
-        for ($i = 0; $i < count($listAnserPoll); $i++) {
-            $text = $listAnserPoll[$i]->findElements(WebDriverBy::cssSelector(".group-poll-detail-section-title"))[0]->getText();
-            $count = explode(")", explode("(", $text)[1])[0];
-            $title = explode(" (", $text)[0];
-            if (($index = array_search($title, $question)) !== false) {
-                $answer[$index] = $count;
+            if ($dayOfWeek == 6)
+                $answer[2] += $redundant;
+            else
+                $answer[1] += $redundant;
+        } else {
+            for ($i = 0; $i < $redundant; $i++) {
+                if (!isset($answer[$i % count($question)]))
+                    $answer[$i % count($question)] = 0;
+                $answer[$i % count($question)]++;
             }
         }
     }
-
-    $driver->findElements(WebDriverBy::cssSelector('[icon="icon-outline-setting"]'))[0]->click();
-
-    waitElementPresent(".popover-v3");
-    $divDetailPollMoreBlock = $driver->findElements(WebDriverBy::cssSelector('.popover-v3 [data-id="div_DetailPollMore_Block"]'));
-    if (count($divDetailPollMoreBlock)) {
-        $divDetailPollMoreBlock[0]->click();
-
-        waitElementPresent('.zl-modal__footer__button.z--btn--fill--secondary-red');
-        $driver->findElements(WebDriverBy::cssSelector('.zl-modal__footer__button.z--btn--fill--secondary-red'))[0]->click();
-    }else{
-        $driver->findElements(WebDriverBy::cssSelector('[icon="close f16"]'))[0]->click();
-    }
-
-    $driver->findElements(WebDriverBy::cssSelector('.fa-outline-right-bar-active'))[0]->click();
 }
